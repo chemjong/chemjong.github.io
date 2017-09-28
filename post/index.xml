@@ -21,6 +21,15 @@
     </item>
     
     <item>
+      <title>test 2</title>
+      <link>https://chemjong.github.io/2017/09/29/test-2/</link>
+      <pubDate>Fri, 29 Sep 2017 00:00:00 +0000</pubDate>
+      
+      <guid>https://chemjong.github.io/2017/09/29/test-2/</guid>
+      <description>Load packageslibrary(tidyverse)library(VIM)library(DT)library(lubridate)library(ggthemes)library(viridis)library(formattable)library(corrplot)library(plotly)library(rpart)library(rpart.plot)library(Metrics)Datadata1&amp;lt;- read.csv(&amp;quot;c:/r data warehouse/human resources analytics/hr.csv&amp;quot;, stringsAsFactors = F, na.strings = &amp;quot;&amp;quot;)Check for NAsum(is.na(data1))## [1] 0Summarysummary(data1)## satisfaction_level last_evaluation number_project average_montly_hours## Min. :0.0900 Min. :0.3600 Min. :2.000 Min. : 96.0 ## 1st Qu.:0.4400 1st Qu.:0.5600 1st Qu.:3.000 1st Qu.:156.0 ## Median :0.</description>
+    </item>
+    
+    <item>
       <title>A Plain Markdown Post</title>
       <link>https://chemjong.github.io/2016/12/30/a-plain-markdown-post/</link>
       <pubDate>Fri, 30 Dec 2016 21:49:57 -0700</pubDate>
