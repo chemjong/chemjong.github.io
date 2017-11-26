@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes" ?>
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
+  <channel>
+    <title>Data Exploration on Chemjong Website</title>
+    <link>/tags/data-exploration/</link>
+    <description>Recent content in Data Exploration on Chemjong Website</description>
+    <generator>Hugo -- gohugo.io</generator>
+    <language>en-us</language>
+    <lastBuildDate>Sun, 26 Nov 2017 00:00:00 +0000</lastBuildDate>
+    
+	<atom:link href="/tags/data-exploration/index.xml" rel="self" type="application/rss+xml" />
+    
+    
+    <item>
+      <title>Location of Medicare Officers of Australia</title>
+      <link>/2017/11/26/location-of-medicare-officers-of-australia/</link>
+      <pubDate>Sun, 26 Nov 2017 00:00:00 +0000</pubDate>
+      
+      <guid>/2017/11/26/location-of-medicare-officers-of-australia/</guid>
+      <description>IntroductionAboutGoal: Learn R language just like any foreign languages 😄
+About the data: FuelCheck ⛽provides real-time information about fuel prices at service stations across NSW. The dataset contains fuel price and other attributes for October 2017 only.
+FuelCheck enables NSW motorists to:
+Find the cheapest fuel being sold anywhere in NSW
+Get directions to any service station in NSW</description>
+    </item>
+    
+  </channel>
+</rss>

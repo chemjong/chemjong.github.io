@@ -1,0 +1,570 @@
+<!DOCTYPE html>
+<html lang="en-us">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Location of Medicare Offices - AU | Chemjong Website</title>
+    <link rel="stylesheet" href="/css/style.css" />
+    <link rel="stylesheet" href="/css/fonts.css" />
+    
+  </head>
+
+  <body>
+    <nav>
+    <ul class="menu">
+      
+      <li><a href="https://chemjong.github.io/">Home</a></li>
+      
+      <li><a href="/about/">About</a></li>
+      
+    </ul>
+    <hr/>
+    </nav>
+
+<div class="article-meta">
+<h1><span class="title">Location of Medicare Offices - AU</span></h1>
+<h2 class="author">Scottish Chemjong</h2>
+<h2 class="date">2017/11/26</h2>
+</div>
+
+<main>
+
+
+<h1 id="introduction">Introduction</h1>
+
+<p>Medicare is a medical service provider for free or at lower cost for Australian citizens. It also pays Medicare benefit on behalf of the Deaprtment of Health.<a href="https://www.humanservices.gov.au/individuals/subjects/medicare-services#a1">1</a></p>
+
+<p>If you ask any Australian they would say Medicare is the cornerstone of being proud Aussies! I&rsquo;d say this is debatable and rest this case for now.</p>
+
+<p>The aim of this project is to learn Data Exploration through R language. I believe as a beginner the best way to learn the language is to find dataset that means something to you.</p>
+
+<p>Data source - <a href="https://data.gov.au/dataset/location-of-medicare-offices">data.gov.au</a></p>
+
+<h1 id="data-wrangling-tabset-tabset-fade-tabset-pills">Data Wrangling {.tabset .tabset-fade .tabset-pills}</h1>
+
+<h2 id="library">Library</h2>
+
+<pre><code class="language-r">library(tidyverse)
+library(forcats)
+library(lubridate)
+library(DT)
+
+library(ggmap)
+library(rgdal)
+library(rgeos)
+library(maptools)
+library(broom)
+library(viridis)
+library(treemapify)
+library(gridExtra)
+</code></pre>
+
+<h2 id="load-data">Load data</h2>
+
+<pre><code class="language-r">data1 &lt;- read.csv(&quot;D:/R Datawarehouse/medicare/medicares2017.csv&quot;, stringsAsFactors = F)
+</code></pre>
+
+<p>Glimpse of the data structure</p>
+
+<pre><code class="language-r">glimpse(data1)
+</code></pre>
+
+<pre><code>## Observations: 238
+## Variables: 11
+## $ OFFICE.TYPE                   &lt;chr&gt; &quot;Medicare&quot;, &quot;Medicare&quot;, &quot;Medicar...
+## $ SITE.NAME                     &lt;chr&gt; &quot;Armadale (WA)&quot;, &quot;Armidale (NSW)...
+## $ ADDRESS                       &lt;chr&gt; &quot;40-42 William Street&quot;, &quot;246-248...
+## $ SUBURB                        &lt;chr&gt; &quot;Armadale&quot;, &quot;Armidale&quot;, &quot;Newport...
+## $ STATE                         &lt;chr&gt; &quot;WA&quot;, &quot;NSW&quot;, &quot;VIC&quot;, &quot;QLD&quot;, &quot;WA&quot;,...
+## $ POSTCODE                      &lt;int&gt; 6112, 2350, 3015, 4814, 6330, 48...
+## $ LATITUDE                      &lt;dbl&gt; -32.15567, -30.51246, -37.84136,...
+## $ LONGITUDE                     &lt;dbl&gt; 116.0137, 151.6619, 144.8827, 14...
+## $ Open                          &lt;chr&gt; &quot;8:30:00&quot;, &quot;8:30:00&quot;, &quot;8:30:00&quot;,...
+## $ Close                         &lt;chr&gt; &quot;16:30:00&quot;, &quot;16:30:00&quot;, &quot;16:30:0...
+## $ Closed.for.lunch.Office.Notes &lt;chr&gt; &quot;No&quot;, &quot;No&quot;, &quot;No&quot;, &quot;Yes - Irregul...
+</code></pre>
+
+<p>Let us issue a unique ID to each Medicare office. However before that I just want to confirm that all the SITE NAME are unique which will indicate me that they all are located separately.</p>
+
+<pre><code class="language-r">data1 %&gt;% 
+  group_by(`SITE NAME`) %&gt;% 
+  summarise(n=n()) %&gt;% 
+  arrange(-n)
+</code></pre>
+
+<pre><code>## Error in grouped_df_impl(data, unname(vars), drop): Column `SITE NAME` is unknown
+</code></pre>
+
+<pre><code class="language-r">x &lt;- which(duplicated(data1$`SITE NAME`))
+
+data1 %&gt;% 
+  filter(`SITE NAME` == &quot;Charlestown&quot;)
+</code></pre>
+
+<pre><code>## Error in filter_impl(.data, quo): Evaluation error: object 'SITE NAME' not found.
+</code></pre>
+
+<p>Above table shows SITE NAME Charlestown has duplicate value. Upon further inspection they seem to be in different place. So its safe issue a unique ID to each of them.</p>
+
+<h2 id="issue-unique-id-to-each-medicare-office">Issue unique ID to each Medicare office</h2>
+
+<pre><code class="language-r">data1 &lt;- data1 %&gt;% 
+  mutate(ID = sprintf(&quot;ID%03d&quot;, row_number())) %&gt;% 
+  select(ID, everything())
+
+head(data1, 2)
+</code></pre>
+
+<pre><code>##      ID OFFICE.TYPE      SITE.NAME               ADDRESS   SUBURB STATE
+## 1 ID001    Medicare  Armadale (WA)  40-42 William Street Armadale    WA
+## 2 ID002    Medicare Armidale (NSW) 246-248 Beardy Street Armidale   NSW
+##   POSTCODE  LATITUDE LONGITUDE    Open    Close
+## 1     6112 -32.15567  116.0137 8:30:00 16:30:00
+## 2     2350 -30.51246  151.6619 8:30:00 16:30:00
+##   Closed.for.lunch.Office.Notes
+## 1                            No
+## 2                            No
+</code></pre>
+
+<h1 id="data-structure-and-content-tabset-tabset-fade-tabset-pills">Data structure and content {.tabset .tabset-fade .tabset-pills}</h1>
+
+<h2 id="variable-names">Variable names</h2>
+
+<p>There are 238 rows and 12 columns in the data.</p>
+
+<p>Below are the variable names:</p>
+
+<pre><code class="language-r">datatable(data.frame(names(data1)), colnames = &quot;Variables&quot;, options = list(
+  pageLength =12
+))
+</code></pre>
+
+<pre><code>## Error in file(con, &quot;rb&quot;): cannot open the connection
+</code></pre>
+
+<h2 id="rename-variables">Rename variables</h2>
+
+<p>First of all, let us rename the variables <code>OFFICE TYPE</code>, <code>SITE NAME</code> <code>Closed for lunch/Office Notes</code></p>
+
+<pre><code class="language-r">data1 &lt;- data1 %&gt;% 
+  rename(Office_type = `OFFICE TYPE`,
+         Closed_for_lunch = `Closed for lunch/Office Notes`)
+</code></pre>
+
+<pre><code>## Error: `OFFICE TYPE`, `Closed for lunch/Office Notes` contains unknown variables
+</code></pre>
+
+<p>I can see that SITE NAME and SUBURB have similar data. Let us verify that it is true for all observations.</p>
+
+<pre><code class="language-r">data1 %&gt;% 
+  mutate(similar = (`SITE NAME` == SUBURB)) %&gt;% 
+  filter(similar == FALSE) %&gt;% 
+  select(`SITE NAME`, SUBURB, similar)
+</code></pre>
+
+<pre><code>## Error in mutate_impl(.data, dots): Evaluation error: object 'SITE NAME' not found.
+</code></pre>
+
+<p>The above table shows that there are only 31 SITE NAME which doesn&rsquo;t match with its SUBURB. I will not merge these variables. I will also add variables Tot_open_hrs which is the time difference between Closing and Opening hours.</p>
+
+<pre><code class="language-r">data1 &lt;- data1 %&gt;% 
+  mutate(Diff_hr = (hms(Close) - hms(Open))) %&gt;% 
+  mutate(Tot_open_hrs = as.numeric(Diff_hr)/(60*60))
+</code></pre>
+
+<h2 id="missing-values">Missing values</h2>
+
+<p>We have 2 missing values in the dataset. Strange, since we didn&rsquo;t have any missing values at the initial stage.</p>
+
+<p>Lets see where are those missing variable</p>
+
+<pre><code class="language-r">colSums(is.na(data1))
+</code></pre>
+
+<pre><code>##                            ID                   OFFICE.TYPE 
+##                             0                             0 
+##                     SITE.NAME                       ADDRESS 
+##                             0                             0 
+##                        SUBURB                         STATE 
+##                             0                             0 
+##                      POSTCODE                      LATITUDE 
+##                             0                             0 
+##                     LONGITUDE                          Open 
+##                             0                             0 
+##                         Close Closed.for.lunch.Office.Notes 
+##                             0                             0 
+##                       Diff_hr                  Tot_open_hrs 
+##                             1                             1
+</code></pre>
+
+<p>Because the varible had &ldquo;Mon to Fri - Irregular Hours&rdquo; the time difference between Close and Open couldn&rsquo;t be calculated therefore it created NA. I have repalced &ldquo;Mon to Fri - Irregular Hours&rdquo; with &ldquo;00:00:00&rdquo;</p>
+
+<pre><code class="language-r"># 
+# data1 %&gt;% 
+#   filter(is.na(Diff_hr))
+# 
+# data1$Close &lt;- data1$Close %&gt;% 
+#   gsub(&quot;Mon to Fri - Irregular Hours&quot;, format(&quot;00:00:00&quot;, &quot;%H:%M:%S&quot;))
+# 
+# strptime((&quot;20:00:00&quot;), format = &quot;%H:%M:%S&quot;)
+# 
+# 
+# strftime(&quot;22:29:56&quot;)
+# 
+# 
+# dates &lt;- c(&quot;02/27/92&quot;, &quot;02/27/92&quot;, &quot;01/14/92&quot;, &quot;02/28/92&quot;, &quot;02/01/92&quot;)
+# times &lt;- c(&quot;23:03:20&quot;, &quot;22:29:56&quot;, &quot;01:03:30&quot;, &quot;18:21:03&quot;, &quot;16:56:26&quot;)
+# x &lt;- paste(dates, times)
+# strptime(x, &quot;%m/%d/%y %H:%M:%S&quot;)
+</code></pre>
+
+<p>Let us re-run the code for time difference again:</p>
+
+<pre><code class="language-r">data1 &lt;- data1 %&gt;% 
+  mutate(Diff_hr = (hms(Close) - hms(Open))) %&gt;% 
+  mutate(Tot_open_hrs = as.numeric(Diff_hr)/(60*60))
+</code></pre>
+
+<p>There are 2 missing values. We will address this probelm later. This will not impact our result.</p>
+
+<h2 id="changing-data-types">Changing data types</h2>
+
+<p>Let get into business of assigning the right data structure to each variables</p>
+
+<pre><code class="language-r">glimpse(data1)
+</code></pre>
+
+<pre><code>## Observations: 238
+## Variables: 14
+## $ ID                            &lt;chr&gt; &quot;ID001&quot;, &quot;ID002&quot;, &quot;ID003&quot;, &quot;ID00...
+## $ OFFICE.TYPE                   &lt;chr&gt; &quot;Medicare&quot;, &quot;Medicare&quot;, &quot;Medicar...
+## $ SITE.NAME                     &lt;chr&gt; &quot;Armadale (WA)&quot;, &quot;Armidale (NSW)...
+## $ ADDRESS                       &lt;chr&gt; &quot;40-42 William Street&quot;, &quot;246-248...
+## $ SUBURB                        &lt;chr&gt; &quot;Armadale&quot;, &quot;Armidale&quot;, &quot;Newport...
+## $ STATE                         &lt;chr&gt; &quot;WA&quot;, &quot;NSW&quot;, &quot;VIC&quot;, &quot;QLD&quot;, &quot;WA&quot;,...
+## $ POSTCODE                      &lt;int&gt; 6112, 2350, 3015, 4814, 6330, 48...
+## $ LATITUDE                      &lt;dbl&gt; -32.15567, -30.51246, -37.84136,...
+## $ LONGITUDE                     &lt;dbl&gt; 116.0137, 151.6619, 144.8827, 14...
+## $ Open                          &lt;chr&gt; &quot;8:30:00&quot;, &quot;8:30:00&quot;, &quot;8:30:00&quot;,...
+## $ Close                         &lt;chr&gt; &quot;16:30:00&quot;, &quot;16:30:00&quot;, &quot;16:30:0...
+## $ Closed.for.lunch.Office.Notes &lt;chr&gt; &quot;No&quot;, &quot;No&quot;, &quot;No&quot;, &quot;Yes - Irregul...
+## $ Diff_hr                       &lt;S4: Period&gt; 8H 0M 0S, 8H 0M 0S, 8H 0M...
+## $ Tot_open_hrs                  &lt;dbl&gt; 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8,...
+</code></pre>
+
+<ol>
+<li>Office_type</li>
+</ol>
+
+<p>Let see how many unique values are present</p>
+
+<pre><code class="language-r">unique(data1$Office_type)
+</code></pre>
+
+<pre><code>## NULL
+</code></pre>
+
+<p>They should be changed to factor</p>
+
+<ol>
+<li>SITE NAME, ADDRESS</li>
+</ol>
+
+<p>We will leve these varibale as character</p>
+
+<ol>
+<li>SUBURB</li>
+</ol>
+
+<p>This can be changed to factor. Let see how many unique SUBURBS are present</p>
+
+<pre><code class="language-r">length(unique(data1$SUBURB))
+</code></pre>
+
+<pre><code>## [1] 235
+</code></pre>
+
+<ol>
+<li>STATE</li>
+</ol>
+
+<p>This can be changed to factor.Let see how many unique STATE are present</p>
+
+<pre><code class="language-r">(unique(data1$STATE))
+</code></pre>
+
+<pre><code>## [1] &quot;WA&quot;  &quot;NSW&quot; &quot;VIC&quot; &quot;QLD&quot; &quot;NT&quot;  &quot;TAS&quot; &quot;SA&quot;  &quot;ACT&quot;
+</code></pre>
+
+<p>8 State. Which is correct!</p>
+
+<ol>
+<li>POSTCODE</li>
+</ol>
+
+<p>Thre is no benefit leaving POSTCODE as characters. We&rsquo;ll change ti factor. But let see how many unique one are there</p>
+
+<pre><code class="language-r">length(unique(data1$POSTCODE))
+</code></pre>
+
+<pre><code>## [1] 236
+</code></pre>
+
+<p>Interesting, since there 235 unique suburb but 236 post codes.</p>
+
+<ol>
+<li>Closed_for_lunch</li>
+</ol>
+
+<p>Lets see the count for each unique values</p>
+
+<pre><code class="language-r">table(data1$Closed_for_lunch)
+</code></pre>
+
+<pre><code>## &lt; table of extent 0 &gt;
+</code></pre>
+
+<p>Ok! We have to change 12:00:00 to 14:00:00, 12:30:00 to 13:30:00 &amp; Yes - Irregular Hours</p>
+
+<pre><code class="language-r">data1$Closed_for_lunch &lt;- stringr::str_replace_all(data1$Closed_for_lunch, &quot;12:00:00 to 14:00:00&quot;, &quot;YES - 1 hr&quot;)
+</code></pre>
+
+<pre><code>## Error in `$&lt;-.data.frame`(`*tmp*`, Closed_for_lunch, value = character(0)): replacement has 0 rows, data has 238
+</code></pre>
+
+<pre><code class="language-r">data1$Closed_for_lunch &lt;- stringr::str_replace_all(data1$Closed_for_lunch, &quot;12:30:00 to 13:30:00&quot;, &quot;YES - 1 hr&quot;)
+</code></pre>
+
+<pre><code>## Error in `$&lt;-.data.frame`(`*tmp*`, Closed_for_lunch, value = character(0)): replacement has 0 rows, data has 238
+</code></pre>
+
+<pre><code class="language-r">data1$Closed_for_lunch &lt;-  stringr::str_replace_all(data1$Closed_for_lunch, &quot;Yes - Irregular Hours&quot;, &quot;YES - Irregular hrs&quot;)
+</code></pre>
+
+<pre><code>## Error in `$&lt;-.data.frame`(`*tmp*`, Closed_for_lunch, value = character(0)): replacement has 0 rows, data has 238
+</code></pre>
+
+<p>Lets us change above varibale which we marked to factor</p>
+
+<pre><code class="language-r">data1 &lt;- data1 %&gt;% 
+  mutate_at(vars(Office_type, STATE, SUBURB, POSTCODE, Closed_for_lunch), funs(as.factor(.)))
+</code></pre>
+
+<pre><code>## Error in overscope_eval_next(overscope, expr): object 'Office_type' not found
+</code></pre>
+
+<p>Lets glimpse the structure of the dataset</p>
+
+<pre><code class="language-r">glimpse(data1)
+</code></pre>
+
+<pre><code>## Observations: 238
+## Variables: 14
+## $ ID                            &lt;chr&gt; &quot;ID001&quot;, &quot;ID002&quot;, &quot;ID003&quot;, &quot;ID00...
+## $ OFFICE.TYPE                   &lt;chr&gt; &quot;Medicare&quot;, &quot;Medicare&quot;, &quot;Medicar...
+## $ SITE.NAME                     &lt;chr&gt; &quot;Armadale (WA)&quot;, &quot;Armidale (NSW)...
+## $ ADDRESS                       &lt;chr&gt; &quot;40-42 William Street&quot;, &quot;246-248...
+## $ SUBURB                        &lt;chr&gt; &quot;Armadale&quot;, &quot;Armidale&quot;, &quot;Newport...
+## $ STATE                         &lt;chr&gt; &quot;WA&quot;, &quot;NSW&quot;, &quot;VIC&quot;, &quot;QLD&quot;, &quot;WA&quot;,...
+## $ POSTCODE                      &lt;int&gt; 6112, 2350, 3015, 4814, 6330, 48...
+## $ LATITUDE                      &lt;dbl&gt; -32.15567, -30.51246, -37.84136,...
+## $ LONGITUDE                     &lt;dbl&gt; 116.0137, 151.6619, 144.8827, 14...
+## $ Open                          &lt;chr&gt; &quot;8:30:00&quot;, &quot;8:30:00&quot;, &quot;8:30:00&quot;,...
+## $ Close                         &lt;chr&gt; &quot;16:30:00&quot;, &quot;16:30:00&quot;, &quot;16:30:0...
+## $ Closed.for.lunch.Office.Notes &lt;chr&gt; &quot;No&quot;, &quot;No&quot;, &quot;No&quot;, &quot;Yes - Irregul...
+## $ Diff_hr                       &lt;S4: Period&gt; 8H 0M 0S, 8H 0M 0S, 8H 0M...
+## $ Tot_open_hrs                  &lt;dbl&gt; 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8,...
+</code></pre>
+
+<p>Awesome! Before we move into visualisation it would be interesting to add more inforamtion to this dataset such as population of that suburb, that suburb distance from the CBD etc.</p>
+
+<p>Ok I give up! I spent 2 hours findind electoral division based on post code and couldn&rsquo;t find it.</p>
+
+<h1 id="visualisation">Visualisation</h1>
+
+<pre><code class="language-r"># unique(data1$STATE)
+state_levels &lt;- c(&quot;NSW&quot;, &quot;VIC&quot;,&quot;QLD&quot;,&quot;WA&quot;, &quot;SA&quot;, &quot;TAS&quot;, &quot;ACT&quot;, &quot;NT&quot;)
+
+data1$STATE &lt;- fct_relevel(data1$STATE, state_levels)
+
+count_md &lt;- data1 %&gt;% 
+  group_by(STATE, Office_type) %&gt;% 
+  summarise(Count = n()) %&gt;% 
+  arrange(-Count)
+</code></pre>
+
+<pre><code>## Error in grouped_df_impl(data, unname(vars), drop): Column `Office_type` is unknown
+</code></pre>
+
+<pre><code class="language-r">p1 &lt;- count_md %&gt;% 
+  ggplot(aes(STATE, Count, fill = Office_type))+
+  geom_bar(stat = &quot;identity&quot;)+
+  geom_text(aes(label = Count), vjust = -.50)+
+  labs(title = &quot;Total count of all Medicare offices by State&quot;, fill = &quot;Office Type&quot;)+
+  theme(legend.position = c(0.85, 0.8))
+</code></pre>
+
+<pre><code>## Error in eval(lhs, parent, parent): object 'count_md' not found
+</code></pre>
+
+<pre><code class="language-r">p2 &lt;- data1 %&gt;% 
+  group_by(STATE) %&gt;% 
+  summarise(Tot_hrs = sum(Tot_open_hrs, na.rm = T)) %&gt;% 
+  ggplot(aes(area = Tot_hrs, fill = Tot_hrs, label = STATE))+
+  geom_treemap()+
+  geom_treemap_text(fontface = &quot;italic&quot;, colour = &quot;white&quot;, place = &quot;centre&quot;,grow = TRUE)+
+  theme(legend.position = &quot;bottom&quot;, legend.background = element_rect(color = &quot;black&quot;, 
+    fill = &quot;grey90&quot;, size = 1, linetype = &quot;solid&quot;), legend.direction = &quot;horizontal&quot;)+
+  labs(fill = &quot;Tot hrs opened in a day&quot;, title = &quot;Total operational hrs in a day&quot;, caption = &quot;Area of the tile proportional to total opening hours in a given day&quot;)+
+  scale_fill_viridis()
+  
+
+grid.arrange(p1,p2, nrow = 2)
+</code></pre>
+
+<pre><code>## Error in arrangeGrob(...): object 'p1' not found
+</code></pre>
+
+<pre><code class="language-r"># data1 %&gt;% 
+#   filter(SUBURB %in% c(&quot;Albury&quot;,&quot;Charlestown&quot;)  &amp; STATE == &quot;NSW&quot;)
+</code></pre>
+
+<pre><code class="language-r"># data1 %&gt;% 
+#   group_by(SUBURB, STATE) %&gt;% 
+#   summarise(Count = n()) %&gt;% 
+#   arrange(-Count) %&gt;% 
+#   filter(Count &gt;= 2) %&gt;% 
+#   ggplot(aes(SUBURB, Count))+
+#   geom_bar(stat=&quot;identity&quot;, aes(fill = SUBURB))+
+#   theme(legend.position = &quot;none&quot;)
+
+p1 &lt;- data1 %&gt;% 
+  group_by(SUBURB, STATE) %&gt;% 
+  summarise(Count = n()) %&gt;% 
+  arrange(-Count) %&gt;% 
+  filter(Count &gt;= 2) %&gt;% 
+  ggplot(aes(area = Count, fill = as.factor(Count), label = SUBURB))+
+  geom_treemap()+
+  geom_treemap_text(fontface = &quot;italic&quot;, colour = &quot;white&quot;, place = &quot;centre&quot;,grow = TRUE)+
+  labs(fill = &quot;Total Medicare offices&quot;, caption = &quot;These are the only Suburbs located in NSW which have 2 Medicare offices out of all AU&quot;, title = &quot;Suburbs which have  two Medicare office&quot;)+
+  theme(legend.position = &quot;bottom&quot;, legend.background = element_rect(color = &quot;black&quot;, 
+    fill = &quot;grey90&quot;, size = 1, linetype = &quot;solid&quot;), legend.direction = &quot;horizontal&quot;)
+  
+
+p2 &lt;- data1 %&gt;% 
+  filter(Closed_for_lunch != &quot;No&quot;) %&gt;% 
+  group_by(STATE, Closed_for_lunch, SUBURB) %&gt;% 
+  summarise(Count = n()) %&gt;% 
+  ggplot(aes(area = Count, fill = Closed_for_lunch, label = SUBURB, subgroup = STATE))+
+  geom_treemap()+
+  geom_treemap_subgroup_text(place = &quot;centre&quot;, grow = T, alpha = 0.5, colour =
+                             &quot;black&quot;, fontface = &quot;italic&quot;, min.size = 0) +
+  geom_treemap_text(colour = &quot;white&quot;, place = &quot;topleft&quot;, reflow = T)+
+  geom_treemap_subgroup_border()+
+  theme(legend.position = &quot;bottom&quot;, legend.background = element_rect(color = &quot;black&quot;, 
+    fill = &quot;grey90&quot;, size = 1, linetype = &quot;solid&quot;), legend.direction = &quot;horizontal&quot;)+
+  labs(fill = &quot;Closed for lunch ?&quot;, title = &quot;List of Medicare suburb which closes for lunch&quot;)
+</code></pre>
+
+<pre><code>## Error in filter_impl(.data, quo): Evaluation error: object 'Closed_for_lunch' not found.
+</code></pre>
+
+<pre><code class="language-r">grid.arrange(p1,p2, nrow = 2)
+</code></pre>
+
+<p><img src="figure/unnamed-chunk-21-1.png" title="plot of chunk unnamed-chunk-21" alt="plot of chunk unnamed-chunk-21" width="100%" /></p>
+
+<h1 id="maps-tabset-tabset-fade-tabset-pills">Maps {.tabset .tabset-fade .tabset-pills}</h1>
+
+<h2 id="medicare-geospatial-map">Medicare Geospatial Map</h2>
+
+<pre><code class="language-r">aus_ucl &lt;- readOGR(dsn = &quot;1270055004_ucl_2016_aust_shape/UCL_2016_AUST.shp&quot;)
+</code></pre>
+
+<pre><code>## Error in ogrListLayers(dsn = dsn): Cannot open data source
+</code></pre>
+
+<pre><code class="language-r">aus_ucl@data$id &lt;- rownames(aus_ucl@data)
+</code></pre>
+
+<pre><code>## Error in rownames(aus_ucl@data): object 'aus_ucl' not found
+</code></pre>
+
+<pre><code class="language-r">df_map &lt;- tidy(aus_ucl)
+</code></pre>
+
+<pre><code>## Error in tidy(aus_ucl): object 'aus_ucl' not found
+</code></pre>
+
+<pre><code class="language-r">oz_states &lt;- data.frame(state=c(&quot;NSW&quot;, &quot;NT&quot;,&quot;QLD&quot;, &quot;SA&quot;,  &quot;TAS&quot;, &quot;VIC&quot;, &quot;WA&quot;, &quot;ACT&quot;),
+                        Region=c(&quot;New South Wales&quot;,&quot;Northern Territory&quot;,
+                                 &quot;Queensland&quot;,&quot;South Australia&quot;,
+                                 &quot;Tasmania&quot;,&quot;Victoria&quot;,&quot;Western Australia&quot;, &quot;Australian Capital Territory&quot;))
+Regions &lt;- data1 %&gt;%
+  left_join(oz_states, by = c(&quot;STATE&quot;=&quot;state&quot;)) %&gt;%
+  group_by(Region) %&gt;%
+  summarise(Count = n()) %&gt;%
+  arrange(-Count)
+
+df_map &lt;- df_map %&gt;%
+  left_join(aus_ucl@data, by=c(&quot;id&quot;)) %&gt;%
+  left_join(Regions, by=c(&quot;STE_NAME16&quot;=&quot;Region&quot;))
+</code></pre>
+
+<pre><code>## Error in eval(lhs, parent, parent): object 'df_map' not found
+</code></pre>
+
+<pre><code class="language-r">#########
+
+center_map &lt;- geocode(&quot;Australia&quot;)
+
+lon &lt;- 133.7751
+lat &lt;- -25.2744
+
+g_map &lt;- get_map(location = c(lon, lat), zoom = 4, maptype = &quot;terrain&quot;, source = &quot;google&quot;)
+
+ggmap(g_map)+
+  geom_polygon(data = df_map, aes(long, lat, group = group, fill = Count),color = &quot;black&quot;, size = 0.2)+
+  scale_fill_viridis()+
+  geom_point(data = data1, aes(LONGITUDE, LATITUDE), color = &quot;red&quot;, size = .8)+
+  labs(x = &quot;Longitude&quot;, y = &quot;Latitude&quot;, title = &quot;Total Count of Medicare by State and its GPS loactions&quot;,
+       caption = &quot;Red dots represent location of Medicare by their GPS Coordinates&quot;)
+</code></pre>
+
+<pre><code>## Error in fortify(data): object 'df_map' not found
+</code></pre>
+
+<h2 id="check-coordinate-reference-system-crs">Check Coordinate Reference System (CRS)</h2>
+
+<pre><code class="language-r">aus_ucl@proj4string
+</code></pre>
+
+<pre><code>## Error in eval(expr, envir, enclos): object 'aus_ucl' not found
+</code></pre>
+
+<p>Projections: setting and transforming CRS in R<a href="https://github.com/Robinlovelace/Creating-maps-in-R/blob/master/README.md">2</a></p>
+
+<p>The Coordinate Reference System (CRS) of spatial objects defines where they are placed on the Earth&rsquo;s surface. You may have noticed &lsquo;proj4string &lsquo;in the summary of lnd above: the information that follows represents its CRS. Spatial data should always have a CRS. If no CRS information is provided, and the correct CRS is known, it can be set as follow:</p>
+
+<p>proj4string(aus) &lt;- NA<em>character</em> # remove CRS information from lnd
+proj4string(aus) &lt;- CRS(&ldquo;+init=epsg:27700&rdquo;) # assign a new CRS</p>
+
+<p>R issues a warning when the CRS is changed. This is so the user knows that they are simply changing the CRS, not reprojecting the data. An easy way to refer to different projections is via <a href="http://www.epsg-registry.org/">EPSG codes.</a></p>
+
+<p>Let plot using base plot cmd</p>
+
+<pre><code class="language-r">plot(aus_ucl)
+</code></pre>
+
+<pre><code>## Error in plot(aus_ucl): object 'aus_ucl' not found
+</code></pre>
+
+</main>
+
+  <footer>
+  
+  
+  </footer>
+  </body>
+</html>
+
